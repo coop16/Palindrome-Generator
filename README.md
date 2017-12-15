@@ -115,8 +115,8 @@ Below is the query code for producing the output for 2gram palindromes. A simila
 We accessed the dataset with the desired language and value of *n* (English 2grams).
 
 ``` python
-set lang=eng-us-all;
-set gram=2gram;
+set lang = eng-us-all;
+set gram = 2gram ;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS ngrams (
 gram string,
