@@ -1,0 +1,43 @@
+set mapred.min.split.size=67108864;
+set mapred.max.split.size=536870912;
+
+set ngramlanguage=eng-us-all;
+set numberofgrams=2gram;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ngrams (
+gram string,
+year int,
+occurrences bigint,
+pages bigint,
+books bigint
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+STORED AS SEQUENCEFILE
+LOCATION 's3://datasets.elasticmapreduce/ngrams/books/20090715/${hiveconf:ngramlanguage}/${hiveconf:numberofgrams}/';
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS cleaned (
+gram string,
+cumoccurrences bigint
+);
+
+INSERT OVERWRITE TABLE cleaned
+SELECT LOWER(gram), SUM(occurrences) FROM ngrams WHERE LENGTH(gram)>2 AND year >= 1990 AND year < 2000 AND gram REGEXP '^[A-z\' ]+$' GROUP BY LOWER(gram);
+
+
+set outputbucket=s3n://ngrampalindrome/output/twogram;
+
+CREATE TABLE IF NOT EXISTS palindromengrams (
+palindromengram string,
+cumoccurrences bigint
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE
+LOCATION '${hiveconf:outputbucket}';
+
+
+
+INSERT OVERWRITE TABLE palindromengrams 
+SELECT gram, cumoccurrences FROM cleaned 
+WHERE LENGTH(regexp_replace(gram,'\'| ',''))>2 
+AND regexp_replace(gram,'\'| ','')= REVERSE(regexp_replace(gram,'\'| ','')) ORDER BY cumoccurrences DESC;
